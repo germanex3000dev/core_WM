@@ -46,6 +46,8 @@ for testing):
 
 ```sh
 nix develop
+```
+```sh
 cargo build
 ```
 
