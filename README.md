@@ -73,6 +73,16 @@ DISPLAY=:1 xterm
 Any window that misbehaves is still reachable through the raw X tools, for
 example `xprop -root _NET_SUPPORTING_WM_CHECK` or `xwininfo -root -tree`.
 
+## Core Architecture
+
+Below is a diagram I sketched in draw.io, representing the core system architecture
+of the WM (How I plan it to be)
+
+![WM architecture](docs/core_system.drawio.svg)
+
+Editable source: [core_wm.drawio](docs/diagrams/core_wm.drawio)
+There you can also find all my other diagrams
+
 ## Roadmap
 
 Completely not in order — this is a wish list, not a commitment:
