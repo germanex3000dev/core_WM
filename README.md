@@ -75,13 +75,13 @@ example `xprop -root _NET_SUPPORTING_WM_CHECK` or `xwininfo -root -tree`.
 
 Completely not in order — this is a wish list, not a commitment:
 
-- [] A configuration file and a sane set of defaults
-- [] Keybindings and mouse bindings (move, resize, focus, close)
-- [] Focus handling and focus stealing rules
-- [] Window decorations
-- [] Tiling and floating layouts
-- [] Tabs, workspaces / tags, and multi-monitor support
-- [] IPC (EWMH / ICCCM) so compositors and pagers work correctly
+- [ ] A configuration file and a sane set of defaults
+- [ ] Keybindings and mouse bindings (move, resize, focus, close)
+- [ ] Focus handling and focus stealing rules
+- [ ] Window decorations
+- [ ] Tiling and floating layouts
+- [ ] Tabs, workspaces / tags, and multi-monitor support
+- [ ] IPC (EWMH / ICCCM) so compositors and pagers work correctly
 
 ## Contributing
 
