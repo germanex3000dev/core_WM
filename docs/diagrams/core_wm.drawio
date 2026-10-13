@@ -1,4 +1,4 @@
-<mxfile host="Electron" pages="5">
+<mxfile host="Electron" pages="6">
   <diagram name="system_architecture" id="75ruP7jCt2Nnra7IBvdf">
     <mxGraphModel dx="1983" dy="1166" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -726,6 +726,68 @@
         </UserObject>
         <mxCell id="jj-oASLN5vWScJNv0LZZ-21" parent="jj-oASLN5vWScJNv0LZZ-1" style="ellipse;aspect=fixed;align=center;verticalAlign=middle;fontSize=12;labelBackgroundColor=light-dark(#FFFFFF,#000000);labelBorderColor=none;strokeColor=light-dark(#000000,#F00000);" value="7" vertex="1">
           <mxGeometry height="20" width="20" x="357" y="393" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="uA8OoJP9hJl_jna65yZF" name="Page-6">
+    <mxGraphModel dx="1388" dy="816" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rj0FjymQigiMM-U9Artc-7" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="120" width="680" x="85" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-2" parent="rj0FjymQigiMM-U9Artc-7" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#F00000,#FF0000);" value="" vertex="1">
+          <mxGeometry height="120" width="680" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-5" parent="rj0FjymQigiMM-U9Artc-7" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font&gt;&lt;span style=&quot;font-size: 36px; color: light-dark(rgb(255, 0, 0), rgb(255, 0, 0));&quot;&gt;X11 sends &#39;MapRequest&#39;&amp;nbsp;&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="530" x="75" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-6" parent="rj0FjymQigiMM-U9Artc-7" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="event.window -&amp;gt; window ID (e.g. 24194306)" vertex="1">
+          <mxGeometry height="30" width="530" x="75" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-8" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="120" width="680" x="85" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-9" parent="rj0FjymQigiMM-U9Artc-8" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#F00000,#FF0000);" value="" vertex="1">
+          <mxGeometry height="120" width="680" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-10" parent="rj0FjymQigiMM-U9Artc-8" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font&gt;&lt;span style=&quot;font-size: 36px; color: light-dark(rgb(255, 0, 0), rgb(255, 0, 0));&quot;&gt;Query X11 geometry&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="530" x="75" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-11" parent="rj0FjymQigiMM-U9Artc-8" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="800 x 600 at (0, 0) (or something, idk)" vertex="1">
+          <mxGeometry height="30" width="530" x="75" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-13" edge="1" parent="1" source="rj0FjymQigiMM-U9Artc-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=light-dark(#000000,#FF0000);" target="rj0FjymQigiMM-U9Artc-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-14" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="120" width="680" x="85" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-15" parent="rj0FjymQigiMM-U9Artc-14" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#F00000,#FF0000);" value="" vertex="1">
+          <mxGeometry height="120" width="680" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-16" parent="rj0FjymQigiMM-U9Artc-14" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font&gt;&lt;span style=&quot;font-size: 36px; color: light-dark(rgb(255, 0, 0), rgb(240, 0, 0));&quot;&gt;Construct &#39;ManagedWindow&#39;&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="530" x="75" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-17" parent="rj0FjymQigiMM-U9Artc-14" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="ID, Position, size, floating, all that supid stuff" vertex="1">
+          <mxGeometry height="30" width="530" x="75" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-18" edge="1" parent="1" source="rj0FjymQigiMM-U9Artc-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=light-dark(#000000,#FF0000);" target="rj0FjymQigiMM-U9Artc-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-19" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="120" width="680" x="85" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-20" parent="rj0FjymQigiMM-U9Artc-19" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=light-dark(#F00000,#FF0000);" value="" vertex="1">
+          <mxGeometry height="120" width="680" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-21" parent="rj0FjymQigiMM-U9Artc-19" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font&gt;&lt;span style=&quot;font-size: 36px; color: light-dark(rgb(255, 0, 0), rgb(255, 0, 0));&quot;&gt;Insert into &#39;window&#39;&lt;/span&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="65" width="530" x="75" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="rj0FjymQigiMM-U9Artc-22" parent="rj0FjymQigiMM-U9Artc-19" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="4194306 -&amp;gt; ManagedWindow {...} -&amp;gt; screen" vertex="1">
+          <mxGeometry height="30" width="530" x="75" y="80" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

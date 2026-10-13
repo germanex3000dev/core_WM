@@ -7,6 +7,10 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 > a few core events. There is no configuration, no keybinding system, and no decoration
 > yet. Expect things to break and the API to change.
 
+## UPDATE
+core_WM has now a *very* simple, vertical tiling logic (It's literally a function that calculates window size in a for loop).
+See below for more details
+
 ## Goals
 
 - **Small.** A tight, readable codebase you can actually hold in your head.
@@ -19,8 +23,18 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - Connects to the running X11 display via `DISPLAY`.
 - Selects `SubstructureRedirect` / `SubstructureNotify` on the root window.
 - Reacts to `MapRequest` by mapping the client window.
-- Reacts to `ConfigureRequest` by forwarding the requested geometry to the X server.
+- Reacts to `ConfigureRequest` by forwarding the ~~requested geometry~~ to the X server. (Has now a tiling mechanism)
+- Can finally "tile" your windows in a vertical layout 
 - Reacts to `DestroyNotify` and logs window closes.
+
+## Current Progress
+> This is probably the only section I will be constantly updating about small
+> changes.
+
+The latest features I implemented are:
+ - A vertical tiling layout, achieved with dividing the screen in equal parts(it's not that complicated)
+ - As I said, It's just a function that iterates through the windows and modifies their x position and width.
+ - I'm too tired to write this properly, it's literally freaking 1 AM, so expect a better rewrite of this
 
 ## Requirements
 
