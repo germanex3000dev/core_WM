@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use x11rb::rust_connection::RustConnection;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::{
@@ -22,10 +23,38 @@ struct ManagedWindow {
     floating: bool,
 }
 
+fn arrange_windows(
+    conn: &RustConnection,
+    windows: &HashMap<u32, ManagedWindow>,
+    screen_width: u32,
+    screen_height: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    
+    let window_width = screen_width / windows.len() as u32;
+
+    for (index, window) in windows.values().enumerate() {
+        let x = index as u32 * window_width;
+
+        conn.configure_window(
+            window.id,
+            &ConfigureWindowAux::new()
+                .x(x as i32)
+                .y(0)
+                .width(window_width)
+                .height(screen_height),
+        )?;
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to X11 i think
     let (conn, screen_num) = x11rb::connect(None)?;
     let screen = &conn.setup().roots[screen_num];
+    let screen_width = u32::from(screen.width_in_pixels);
+    let screen_height = u32::from(screen.height_in_pixels);
+
     let root = screen.root;
 
     println!("core_WM: connecting to X11 ... ");
@@ -54,12 +83,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let window = event.window;
 
-                
+                // This "thing" retrieves position and size temporarily.
+                // Although it feels kind of pointless, it works this way
+                // and I'm too scared to touch it.
                 let geometry = conn
                     .get_geometry(window)?
                     .reply()?;
                  
 
+                /* Old window configuration
                 conn.configure_window(
                     window,
                     &ConfigureWindowAux::new()
@@ -68,19 +100,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .width(800)
                         .height(600),
                 )?;
+                */ 
 
 
                 // create the struct and give it the window values on a new window
                 let managed_window = ManagedWindow {
                     id: window,
-                    x: 100,
-                    y: 100,
-                    width: 800,
-                    height: 600,
+                    x: geometry.x,
+                    y: geometry.y,
+                    width: geometry.width,
+                    height: geometry.height,
                     floating: false
                 };
 
                 windows.insert(window, managed_window);
+
+                arrange_windows(
+                    &conn,
+                    &windows,
+                    screen_width,
+                    screen_height,
+                )?;
 
                 println!(
                     "Window {}: {}x{} at ({}, {})",
@@ -149,6 +189,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 windows.remove(&event.window);
 
                 println!("Window closed: {}", event.window);
+
+                arrange_windows(
+                    &conn,
+                    &windows,
+                    screen_width,
+                    screen_height,
+                )?;
+
             }
 
             _ => {}
