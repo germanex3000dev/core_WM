@@ -23,26 +23,36 @@ struct ManagedWindow {
     floating: bool,
 }
 
+
+// This function arranges the windows and is the "main" tiling logic
 fn arrange_windows(
     conn: &RustConnection,
     windows: &HashMap<u32, ManagedWindow>,
+    window_order: &Vec<u32>,
     screen_width: u32,
     screen_height: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
+
+    if windows.len() == 0 {
+        return Ok(())
+    }
     
     let window_width = screen_width / windows.len() as u32;
 
-    for (index, window) in windows.values().enumerate() {
-        let x = index as u32 * window_width;
+    for (index, window_id) in window_order.iter().enumerate() {
 
-        conn.configure_window(
-            window.id,
-            &ConfigureWindowAux::new()
-                .x(x as i32)
-                .y(0)
-                .width(window_width)
-                .height(screen_height),
-        )?;
+        if let Some(window) = windows.get(window_id) {
+            let x = index as u32 * window_width;
+
+            conn.configure_window(
+                window.id,
+                &ConfigureWindowAux::new()
+                    .x(x as i32)
+                    .y(0)
+                    .width(window_width)
+                    .height(screen_height),
+            )?;
+        }
     }
 
     Ok(())
@@ -69,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     .check()?;
 
     let mut windows: HashMap<u32, ManagedWindow> = HashMap::new();
+    let mut window_order: Vec<u32> = Vec::new();
 
     println!("core_WM: running(hopefully. maybe.)");
 
@@ -114,10 +125,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 };
 
                 windows.insert(window, managed_window);
+                window_order.push(window);
 
                 arrange_windows(
                     &conn,
                     &windows,
+                    &window_order,
                     screen_width,
                     screen_height,
                 )?;
@@ -187,12 +200,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             Event::DestroyNotify(event) => {
                 windows.remove(&event.window);
+                window_order.retain(|&id| id != event.window);
 
                 println!("Window closed: {}", event.window);
 
                 arrange_windows(
                     &conn,
                     &windows,
+                    &window_order,
                     screen_width,
                     screen_height,
                 )?;
