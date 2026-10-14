@@ -31,7 +31,18 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 > This is the section I'll keep rewriting as things land — the running log of small steps.
 > For the bigger picture, see [Goals](#goals) and [Roadmap](#roadmap).
 
-### Latest: first working tiling layout
+### Latest(small): deterministic window arrangement
+
+The `windows` `HashMap` has no iteration order, so column positions could shuffle between
+runs. Window ids are now recorded in a `Vec<u32>` alongside it and kept in sync by the
+event loop:
+
+- `MapRequest` pushes the new id onto the end.
+- `DestroyNotify` removes it again.
+- `arrange_windows()` iterates that vector instead of the map, so columns come out in the
+  order the windows were opened.
+
+### Latest(major): first working tiling layout
 
 core_WM now tiles windows instead of letting them pile up wherever the application happens
 to ask for. So far this means:
@@ -48,14 +59,16 @@ to ask for. So far this means:
 
 Deliberately minimal for a first cut, but worth knowing:
 
-- **Column order isn't stable.** Windows are iterated out of a `HashMap`, so the
-  left-to-right order can shuffle between runs. Needs an ordered container.
+- ~~**Column order isn't stable.** Windows are iterated out of a `HashMap`, so the
+  left-to-right order can shuffle between runs. Needs an ordered container.~~ **Fixed** by
+  the `Latest(small)` entry above.
 - **No gaps or borders.** Windows sit flush against each other.
 - **Floating isn't wired up.** The `floating` flag exists but nothing reads it yet.
 - **User-driven changes don't stick.** A window that resizes or moves itself keeps that
   geometry until the next map/destroy triggers a re-layout.
-- **Closing the last window panics.** `arrange_windows()` divides by the window count
-  without guarding the empty case.
+- ~~**Closing the last window panics.** `arrange_windows()` divides by the window count
+  without guarding the empty case.~~ **Fixed** — `arrange_windows()` now returns early when
+  the window list is empty.
 
 > I said I would rework it
 
