@@ -14,7 +14,7 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - **Modern.** Written from scratch in Rust, using [x11rb] for a safe, pure-Rust X11 client.
 - **Featurefull.** The long-term goal is a genuinely usable WM — see [Roadmap](#roadmap).
 
-## Current features
+## Current Features
 
 - Connects to the running X11 display via `DISPLAY`.
 - Selects `SubstructureRedirect` / `SubstructureNotify` on the root window.
@@ -23,8 +23,8 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - Reacts to `ConfigureRequest` by forwarding the requested geometry to the X server and
   keeping the struct in sync.
 - Reacts to `DestroyNotify` by dropping the window and re-running the layout.
-- Arranges managed windows into equal-width vertical columns — the first working tiling
-  layout.
+- Arranges managed windows into equal-width vertical columns, in the order they were
+  opened, so the layout stays the same between runs.
 
 ## Current Progress
 
@@ -55,7 +55,7 @@ to ask for. So far this means:
 - **Automatic re-layout.** Called on `MapRequest` and `DestroyNotify`, so opening or
   closing a window re-tiles everything and the remaining windows always fill the screen.
 
-### Known limitations
+### Known Limitations
 
 Deliberately minimal for a first cut, but worth knowing:
 
