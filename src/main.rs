@@ -133,7 +133,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     conn.grab_key(
         false,
         root,
-        ModMask::M1,
+        ModMask::M4,
         super_j,
         GrabMode::ASYNC,
         GrabMode::ASYNC,
