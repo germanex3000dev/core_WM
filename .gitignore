@@ -1,1 +1,4 @@
 /target
+
+# draw.io backup/lock files
+.*.drawio.bkp
