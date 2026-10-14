@@ -10,6 +10,10 @@ use x11rb::protocol::xproto::{
     ConnectionExt, 
     EventMask, 
     Window,
+    GrabMode,
+    ModMask,
+    InputFocus,
+    StackMode,
 };
 
 
@@ -58,6 +62,38 @@ fn arrange_windows(
     Ok(())
 }
 
+fn keycode_for_keysym(
+    conn: &RustConnection,
+    target: xkeysym::Keysym,
+) -> Result<Option<u8>, Box<dyn std::error::Error>> {
+    let setup = conn.setup();
+
+    let mapping = conn
+        .get_keyboard_mapping(
+            setup.min_keycode,
+            setup.max_keycode - setup.min_keycode + 1,
+        )?
+        .reply()?;
+
+    for keycode in setup.min_keycode..=setup.max_keycode {
+        for column in 0..mapping.keysyms_per_keycode {
+            let symbol = xkeysym::keysym(
+                keycode.into(),
+                column,
+                setup.min_keycode.into(),
+                mapping.keysyms_per_keycode,
+                mapping. keysyms.as_slice(),
+            );
+
+            if symbol == Some(target) {
+                return Ok(Some(keycode));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to X11 i think
     let (conn, screen_num) = x11rb::connect(None)?;
@@ -81,7 +117,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut windows: HashMap<u32, ManagedWindow> = HashMap::new();
     let mut window_order: Vec<u32> = Vec::new();
 
+    let mut focused_index: usize = 0;
+
     println!("core_WM: running(hopefully. maybe.)");
+
+    let j_keysym = xkeysym::Keysym::from_char('j');
+    let k_keysym = xkeysym::Keysym::from_char('k');
+
+    let super_j = keycode_for_keysym(&conn, j_keysym)?
+        .ok_or("Could not find the j key in the keyboard mapping")?;
+
+    let super_k = keycode_for_keysym(&conn, k_keysym)?
+        .ok_or("Could not fing the k key in the keyboard mapping")?;
+
+    conn.grab_key(
+        false,
+        root,
+        ModMask::M1,
+        super_j,
+        GrabMode::ASYNC,
+        GrabMode::ASYNC,
+    )?
+    .check()?;
 
     // Process X11 events for all eternity(not really)
     loop {
@@ -212,6 +269,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     screen_height,
                 )?;
 
+                if window_order.is_empty() {
+                    focused_index = 0;
+                } else if focused_index >= window_order.len() {
+                    focused_index = window_order.len() -1; 
+                }
+
+            }
+
+            Event::KeyPress(event) => {
+                if event.detail  == super_j && !window_order.is_empty() {
+                    focused_index = (focused_index + 1) % window_order.len();
+
+                    let window_id = window_order[focused_index];
+
+                    conn.configure_window(
+                        window_id,
+                        &ConfigureWindowAux::new()
+                            .stack_mode(StackMode::ABOVE),
+                    )?;
+
+                    conn.flush()?;
+                }
+
+                if event.detail == super_k && !window_order.is_empty() {
+                    focused_index = (focused_index + window_order.len() - 1) % window_order.len();
+
+                    let window_id = window_order[focused_index];
+
+                    conn.configure_window(
+                        window_id,
+                        &ConfigureWindowAux::new()
+                            .stack_mode(StackMode::ABOVE),
+                    )?;
+
+                    conn.flush()?;
+                }
             }
 
             _ => {}
