@@ -2,7 +2,7 @@
 
 A small, minimalistic yet modern and featurefull X11 window manager, written in Rust.
 
-> **Status: very early.** core_WM is currently at version `0.1.2` — at this point it is
+> **Status: very early.** core_WM is currently at version `0.1.3` — at this point it is
 > little more than a window management *handler*: it talks to the X server and reacts to
 > a few core events. There is no configuration, no keybinding system, and no decoration
 > yet. Expect things to break and the API to change.
