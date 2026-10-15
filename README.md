@@ -2,10 +2,9 @@
 
 A small, minimalistic yet modern and featurefull X11 window manager, written in Rust.
 
-> **Status: very early.** core_WM is currently at version `0.1.3` — at this point it is
-> little more than a window management *handler*: it talks to the X server and reacts to
-> a few core events. There is no configuration, no keybinding system, and no decoration
-> yet. Expect things to break and the API to change.
+> **Status: very early.** core_WM is at version `0.1.3`. It tiles windows, tracks focus,
+> and answers a couple of hardcoded keybindings — but there is no configuration, no
+> decoration, and no floating yet. Expect things to break and the API to change.
 
 ## Goals
 
@@ -25,11 +24,33 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - Reacts to `DestroyNotify` by dropping the window and re-running the layout.
 - Arranges managed windows into equal-width vertical columns, in the order they were
   opened, so the layout stays the same between runs.
+- Moves keyboard focus with `SetInputFocus`, raising the focused window on top.
+- Binds `SUPER+J` / `SUPER+K` to cycle focus forward and backward, wrapping at both ends.
+- Focuses the first window on startup, and re-points focus when the focused window closes.
 
 ## Current Progress
 
 > This is the section I'll keep rewriting as things land — the running log of small steps.
 > For the bigger picture, see [Goals](#goals) and [Roadmap](#roadmap).
+
+> Yeah, I started adding dates
+
+### Latest(major) 05.10.2026, 18:30: focus cycling with SUPER+J / SUPER+K
+
+core_WM can now move focus between windows, which makes it more than just something that
+tiles windows on its own.
+
+- **Passive grabs.** `SUPER+J` and `SUPER+K` are registered on the root window with
+  `grab_key` — that's what routes those combos to the WM instead of the focused client.
+- **Keysym lookup.** `keycode_for_keysym()` walks the keyboard mapping at startup to turn
+  `j` and `k` into keycodes, so the bindings follow the user's layout rather than assuming
+  raw scancodes.
+- **Raise, then focus.** Cycling restacks the target with `StackMode::ABOVE` *and* calls
+  `set_input_focus`. Stacking alone does nothing here — focus is a separate per-window
+  property in X11, not a consequence of being on top.
+- **Focus follows the window.** `focused_index` is tracked across the event loop, advanced
+  with `rem_euclid` so wrapping works in both directions, and corrected on `DestroyNotify`
+  so focus is never left pointing at a window that's gone.
 
 ### Latest(small): deterministic window arrangement
 
@@ -62,13 +83,19 @@ Deliberately minimal for a first cut, but worth knowing:
 - ~~**Column order isn't stable.** Windows are iterated out of a `HashMap`, so the
   left-to-right order can shuffle between runs. Needs an ordered container.~~ **Fixed** by
   the `Latest(small)` entry above.
+- ~~**Closing the last window panics.** `arrange_windows()` divides by the window count
+  without guarding the empty case.~~ **Fixed** — `arrange_windows()` now returns early when
+  the window list is empty.
 - **No gaps or borders.** Windows sit flush against each other.
 - **Floating isn't wired up.** The `floating` flag exists but nothing reads it yet.
 - **User-driven changes don't stick.** A window that resizes or moves itself keeps that
   geometry until the next map/destroy triggers a re-layout.
-- ~~**Closing the last window panics.** `arrange_windows()` divides by the window count
-  without guarding the empty case.~~ **Fixed** — `arrange_windows()` now returns early when
-  the window list is empty.
+- **Clicking a window doesn't move focus.** Focus only moves with `SUPER+J` / `SUPER+K`;
+  there's no `ButtonPress` or `FocusIn` handling yet.
+  - But somehow, moving your mouse over a window focuses on it. I don't know why, it should
+    not happen, but who cares? It works.
+- **Keybindings are hardcoded.** Two of them, compiled straight into the binary. There's no
+  config file yet — see [Roadmap](#roadmap).
 
 > I said I would rework it
 
@@ -77,8 +104,9 @@ Deliberately minimal for a first cut, but worth knowing:
 - A running X11 server (the project targets X11, not Wayland)
 - Rust (edition 2024) — or Nix, if you'd rather not install a toolchain
 
-The only runtime dependency is `x11rb`, which speaks the X11 protocol directly over a
-socket. No Xlib, no C bindings.
+The runtime dependencies are `x11rb` and `xkeysym`. `x11rb` speaks the X11 protocol
+directly over a socket — no Xlib, no C bindings — and `xkeysym` is used to translate
+keycodes into keysyms when resolving keybindings.
 
 ## Building
 
@@ -104,8 +132,8 @@ cargo build
 ## Running
 
 core_WM takes no arguments. It replaces your current window manager, so be aware
-that it is *not* usable as a daily driver yet — you will not be able to move,
-resize, or close windows.
+that it is *not* usable as a daily driver yet — you cannot move, resize, or close
+windows. The one interaction is `SUPER+J` / `SUPER+K` to cycle focus.
 
 ```sh
 core_wm
@@ -169,8 +197,8 @@ The direction I want to grow the tiling engine into: an unbounded canvas that pa
 Completely not in order — this is a wish list, not a commitment:
 
 - [ ] A configuration file and a sane set of defaults
-- [ ] Keybindings and mouse bindings (move, resize, focus, close)
-- [ ] Focus handling and focus stealing rules
+- [ ] Keybindings and mouse bindings — focus cycling is in, see [Current Progress](#current-progress)
+- [ ] Focus handling and focus stealing rules — focus is tracked and cycled, click-to-focus is not
 - [ ] Window decorations
 - [ ] Tiling and floating layouts — vertical tiling is in, see [Current Progress](#current-progress)
 - [ ] Tabs, workspaces / tags, and multi-monitor support
