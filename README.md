@@ -151,6 +151,23 @@ DISPLAY=:1 xterm
 Any window that misbehaves is still reachable through the raw X tools, for
 example `xprop -root _NET_SUPPORTING_WM_CHECK` or `xwininfo -root -tree`.
 
+## Running it the **real** way
+
+If you don't want that stupid `Xephyr` setup, you can also run it somewhat like any X11 WM.
+I recommend you make a seperate `corewm-session` file or whatever you want to name it. 
+But before you do that:
+
+- Compile the code with either `nix develop` or with `cargo build --release`. The binary lands in `target/release/corewm`
+- Then, you can put `exec /path/to/corewm` into your `corewm-session file` (Don't forget the `#!bin/sh`)
+    - **Remember:** Since core_WM has no keybind to launch a terminal, put `kitty &` before you call `exec`. Or xterm, or what kind of terminal you want to use. 
+- For screen settings:
+    - You can declare display settings in your `corewm-session` with `xrandr`
+        - **Example:** `xrandr --output eDP-1`
+    - If you want to modify your scale(*4K Laptops*):
+        - `xrandr --output eDP-1 --scale 0.5x0.5`
+
+- Save the file, and launch from a TTY with `startx ~/corewm-session -- :1`
+
 ## Architecture
 
 These are sketches I made in draw.io. They describe where core_WM is *heading* — most of
