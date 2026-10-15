@@ -168,6 +168,11 @@ But before you do that:
 
 - Save the file, and launch from a TTY with `startx ~/corewm-session -- :1`
 
+**!IMPORTANT!**
+Don't replace your `.xinitrc` if you're using another X11 WM. Even if you don't, I don't 
+recommend launching core_WM via `.xinitrc`, since it's not at a stable release. I wouldn't
+even say, we're at an unstable release.
+
 ## Architecture
 
 These are sketches I made in draw.io. They describe where core_WM is *heading* — most of
