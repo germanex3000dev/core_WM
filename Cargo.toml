@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 x11rb = "0.14.0"
+xkeysym = "0.2.1"
