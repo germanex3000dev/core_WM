@@ -14,6 +14,7 @@ use x11rb::protocol::xproto::{
     ModMask,
     InputFocus,
     StackMode,
+    Time,
 };
 
 
@@ -61,6 +62,27 @@ fn arrange_windows(
 
     Ok(())
 }
+
+// Hands X11 input focus to a window. Without this, raising a window does
+// nothing at all: focus is a per-window property set by SetInputFocus, and
+// it is completely independent of stacking order.
+// NOTE: the argument order is (revert_to, focus, time), not (focus, ...).
+// POINTER_ROOT means "fall back to the pointer if this window goes away".
+fn focus_window(
+    conn: &RustConnection,
+    window_id: Window,
+) -> Result<(), Box<dyn std::error::Error>> {
+
+    conn.set_input_focus(
+        InputFocus::POINTER_ROOT,
+        window_id,
+        Time::CURRENT_TIME,
+    )?
+    .check()?;
+
+    Ok(())
+}
+
 
 fn keycode_for_keysym(
     conn: &RustConnection,
@@ -128,13 +150,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("Could not find the j key in the keyboard mapping")?;
 
     let super_k = keycode_for_keysym(&conn, k_keysym)?
-        .ok_or("Could not fing the k key in the keyboard mapping")?;
+        .ok_or("Could not find the k key in the keyboard mapping")?;
 
+    // A passive grab is what routes a combo to us at all - without one the
+    // key event goes to the focused window and never reaches this loop.
+    // Every keycode we want to handle needs its own grab here.
     conn.grab_key(
         false,
         root,
         ModMask::M4,
         super_j,
+        GrabMode::ASYNC,
+        GrabMode::ASYNC,
+    )?
+    .check()?;
+
+    conn.grab_key(
+        false,
+        root,
+        ModMask::M4,
+        super_k,
         GrabMode::ASYNC,
         GrabMode::ASYNC,
     )?
@@ -204,6 +239,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 //make window visible
                 conn.map_window(event.window)?;
 
+                // Focus the very first window, so the focus cycle has a
+                // starting point and SUPER+J doesn't skip window 0.
+                // Later windows do not steal focus.
+                if window_order.len() == 1 {
+                    focus_window(&conn, window_order[0])?;
+                }
+
             }
 
             Event::ConfigureRequest(event) => {
@@ -256,6 +298,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             Event::DestroyNotify(event) => {
+
+                // If the focused window is the one going away, focus has to
+                // move, otherwise it is left dangling on a dead window.
+                //let was_focused = window_order.get(focused_index) == Some(&event.window);
+
+                let previously_focused = window_order.get(focused_index).copied();
+
                 windows.remove(&event.window);
                 window_order.retain(|&id| id != event.window);
 
@@ -269,41 +318,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     screen_height,
                 )?;
 
-                if window_order.is_empty() {
+                if window_order.len() == 0 {
                     focused_index = 0;
-                } else if focused_index >= window_order.len() {
-                    focused_index = window_order.len() -1; 
+                } else if previously_focused == Some(event.window) {
+                    //choose a valid replacement, if the focused window is killed
+                    focused_index = focused_index.min(window_order.len() - 1);
+                    focus_window(&conn, window_order[focused_index])?;
+                } else if let Some(old_id) = previously_focused {
+                    // Preserve current window (hopefully)
+                    if let Some(new_index) = window_order.iter().position (|&id| id == old_id) {
+                        focused_index = new_index;
+                    } else {
+                        focused_index = focused_index.min(window_order.len() - 1);
+                    }
+                } else {
+                    focused_index = focused_index.min(window_order.len() - 1);
                 }
-
             }
 
             Event::KeyPress(event) => {
-                if event.detail  == super_j && !window_order.is_empty() {
-                    focused_index = (focused_index + 1) % window_order.len();
+
+                // SUPER+J cycles forward, SUPER+K cycles backward.
+                let delta = if event.detail == super_j {
+                    1i32
+                } else if event.detail == super_k {
+                    -1
+                } else {
+                    0
+                };
+
+                if delta != 0 && !window_order.is_empty() {
+
+                    // rem_euclid keeps this correct in both directions,
+                    // where plain % would panic on the negative side.
+                    focused_index = ((focused_index as i32 + delta)
+                        .rem_euclid(window_order.len() as i32)) as usize;
 
                     let window_id = window_order[focused_index];
 
+                    // Raise it so the focused window is on top...
                     conn.configure_window(
                         window_id,
                         &ConfigureWindowAux::new()
                             .stack_mode(StackMode::ABOVE),
                     )?;
 
-                    conn.flush()?;
-                }
+                    // ...and actually give it the focus.
+                    focus_window(&conn, window_id)?;
 
-                if event.detail == super_k && !window_order.is_empty() {
-                    focused_index = (focused_index + window_order.len() - 1) % window_order.len();
-
-                    let window_id = window_order[focused_index];
-
-                    conn.configure_window(
-                        window_id,
-                        &ConfigureWindowAux::new()
-                            .stack_mode(StackMode::ABOVE),
-                    )?;
-
-                    conn.flush()?;
                 }
             }
 
