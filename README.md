@@ -2,7 +2,7 @@
 
 A small, minimalistic yet modern and featurefull X11 window manager, written in Rust.
 
-> **Status: very early.** core_WM is at version `0.1.3`. It tiles windows, tracks focus,
+> **Status: very early.** core_WM is at version `0.1.4`. It tiles windows, tracks focus,
 > and answers a couple of hardcoded keybindings — but there is no configuration, no
 > decoration, and no floating yet. Expect things to break and the API to change.
 
