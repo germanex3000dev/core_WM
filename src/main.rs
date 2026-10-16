@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::process::Command;
 
-use x11rb::rust_connection::RustConnection;
 use x11rb::connection::Connection;
 use x11rb::protocol::Event;
 use x11rb::protocol::xproto::{
@@ -8,15 +8,16 @@ use x11rb::protocol::xproto::{
     ConfigWindow, 
     ConfigureWindowAux, 
     ConnectionExt, 
-    EventMask, 
-    Window,
-    GrabMode,
-    ModMask,
-    InputFocus,
-    StackMode,
-    Time,
+    EventMask,
+    GrabMode, 
+    InputFocus, 
+    ModMask, 
+    StackMode, 
+    Time, 
+    Window, 
+    ClientMessageEvent, 
 };
-
+use x11rb::rust_connection::RustConnection;
 
 // struct that has window info
 struct ManagedWindow {
@@ -28,7 +29,6 @@ struct ManagedWindow {
     floating: bool,
 }
 
-
 // This function arranges the windows and is the "main" tiling logic
 fn arrange_windows(
     conn: &RustConnection,
@@ -37,15 +37,13 @@ fn arrange_windows(
     screen_width: u32,
     screen_height: u32,
 ) -> Result<(), Box<dyn std::error::Error>> {
-
     if windows.len() == 0 {
-        return Ok(())
+        return Ok(());
     }
-    
+
     let window_width = screen_width / windows.len() as u32;
 
     for (index, window_id) in window_order.iter().enumerate() {
-
         if let Some(window) = windows.get(window_id) {
             let x = index as u32 * window_width;
 
@@ -72,17 +70,11 @@ fn focus_window(
     conn: &RustConnection,
     window_id: Window,
 ) -> Result<(), Box<dyn std::error::Error>> {
-
-    conn.set_input_focus(
-        InputFocus::POINTER_ROOT,
-        window_id,
-        Time::CURRENT_TIME,
-    )?
-    .check()?;
+    conn.set_input_focus(InputFocus::POINTER_ROOT, window_id, Time::CURRENT_TIME)?
+        .check()?;
 
     Ok(())
 }
-
 
 fn keycode_for_keysym(
     conn: &RustConnection,
@@ -91,10 +83,7 @@ fn keycode_for_keysym(
     let setup = conn.setup();
 
     let mapping = conn
-        .get_keyboard_mapping(
-            setup.min_keycode,
-            setup.max_keycode - setup.min_keycode + 1,
-        )?
+        .get_keyboard_mapping(setup.min_keycode, setup.max_keycode - setup.min_keycode + 1)?
         .reply()?;
 
     for keycode in setup.min_keycode..=setup.max_keycode {
@@ -104,7 +93,7 @@ fn keycode_for_keysym(
                 column,
                 setup.min_keycode.into(),
                 mapping.keysyms_per_keycode,
-                mapping. keysyms.as_slice(),
+                mapping.keysyms.as_slice(),
             );
 
             if symbol == Some(target) {
@@ -114,6 +103,52 @@ fn keycode_for_keysym(
     }
 
     Ok(None)
+}
+
+fn launch_terminal() {
+    match Command::new("xterm").spawn() {
+        Ok(mut child) => {
+            std::thread::spawn(move || {
+                let _ = child.wait();
+            });
+        }
+
+        Err(error) => {
+            eprintln!("Failed to launch terminal: {error}");
+        }
+    }
+}
+
+fn close_window(
+    conn: &RustConnection,
+    window: u32,
+    wm_protocols: u32,
+    wm_delete_window: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let event = ClientMessageEvent::new(
+        32,
+        window,
+        wm_protocols,
+        [
+            wm_delete_window,
+            x11rb::CURRENT_TIME,
+            0,
+            0,
+            0,
+        ],
+    );
+
+    conn.send_event(
+        false,
+        window, 
+        EventMask::NO_EVENT,
+        event,
+    )?
+    .check()?;
+
+    conn.flush()?;
+
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -143,8 +178,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("core_WM: running(hopefully. maybe.)");
 
+    let wm_protocols = conn
+        .intern_atom(false, b"WM_PROTOCOLS")?
+        .reply()?
+        .atom;
+
+    let wm_delete_window = conn
+        .intern_atom(false, b"DELETE_WINDOW")?
+        .reply()?
+        .atom;
+
     let j_keysym = xkeysym::Keysym::from_char('j');
     let k_keysym = xkeysym::Keysym::from_char('k');
+    let t_keysym = xkeysym::Keysym::from_char('t');
+    let q_keysym = xkeysym::Keysym::from_char('q');
 
     let super_j = keycode_for_keysym(&conn, j_keysym)?
         .ok_or("Could not find the j key in the keyboard mapping")?;
@@ -152,13 +199,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let super_k = keycode_for_keysym(&conn, k_keysym)?
         .ok_or("Could not find the k key in the keyboard mapping")?;
 
+    let super_t = keycode_for_keysym(&conn, t_keysym)?
+        .ok_or("Could not find the t key in the keyboard mapping")?;
+
+    let super_q = keycode_for_keysym(&conn, q_keysym)?
+        .ok_or("Could not find the q key in the keyboard mapping")?;
+
     // A passive grab is what routes a combo to us at all - without one the
     // key event goes to the focused window and never reaches this loop.
     // Every keycode we want to handle needs its own grab here.
     conn.grab_key(
         false,
         root,
-        ModMask::M4,
+        ModMask::M1,
         super_j,
         GrabMode::ASYNC,
         GrabMode::ASYNC,
@@ -168,8 +221,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     conn.grab_key(
         false,
         root,
-        ModMask::M4,
+        ModMask::M1,
         super_k,
+        GrabMode::ASYNC,
+        GrabMode::ASYNC,
+    )?
+    .check()?;
+
+    conn.grab_key(
+        false,
+        root,
+        ModMask::M1,
+        super_t,
+        GrabMode::ASYNC,
+        GrabMode::ASYNC,
+    )?
+    .check()?;
+
+    conn.grab_key(
+        false,
+        root,
+        ModMask::M1,
+        super_q,
         GrabMode::ASYNC,
         GrabMode::ASYNC,
     )?
@@ -180,7 +253,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let event = conn.wait_for_event()?;
 
         match event {
-            
             Event::MapRequest(event) => {
                 println!("New window {}", event.window);
 
@@ -189,10 +261,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // This "thing" retrieves position and size temporarily.
                 // Although it feels kind of pointless, it works this way
                 // and I'm too scared to touch it.
-                let geometry = conn
-                    .get_geometry(window)?
-                    .reply()?;
-                 
+                let geometry = conn.get_geometry(window)?.reply()?;
 
                 /* Old window configuration
                 conn.configure_window(
@@ -203,8 +272,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .width(800)
                         .height(600),
                 )?;
-                */ 
-
+                */
 
                 // create the struct and give it the window values on a new window
                 let managed_window = ManagedWindow {
@@ -213,27 +281,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     y: geometry.y,
                     width: geometry.width,
                     height: geometry.height,
-                    floating: false
+                    floating: false,
                 };
 
                 windows.insert(window, managed_window);
                 window_order.push(window);
 
-                arrange_windows(
-                    &conn,
-                    &windows,
-                    &window_order,
-                    screen_width,
-                    screen_height,
-                )?;
+                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
 
                 println!(
                     "Window {}: {}x{} at ({}, {})",
-                    window,
-                    geometry.width,
-                    geometry.height,
-                    geometry.x,
-                    geometry.y
+                    window, geometry.width, geometry.height, geometry.x, geometry.y
                 );
 
                 //make window visible
@@ -245,7 +303,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if window_order.len() == 1 {
                     focus_window(&conn, window_order[0])?;
                 }
-
             }
 
             Event::ConfigureRequest(event) => {
@@ -256,7 +313,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if event.value_mask.contains(ConfigWindow::X) {
                     changes = changes.x(i32::from(event.x));
-
 
                     // These if-statements update the data in the struct(managed_window)
                     if let Some(managed_window) = windows.get_mut(&event.window) {
@@ -298,7 +354,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             Event::DestroyNotify(event) => {
-
                 // If the focused window is the one going away, focus has to
                 // move, otherwise it is left dangling on a dead window.
                 //let was_focused = window_order.get(focused_index) == Some(&event.window);
@@ -310,13 +365,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("Window closed: {}", event.window);
 
-                arrange_windows(
-                    &conn,
-                    &windows,
-                    &window_order,
-                    screen_width,
-                    screen_height,
-                )?;
+                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
 
                 if window_order.len() == 0 {
                     focused_index = 0;
@@ -326,7 +375,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     focus_window(&conn, window_order[focused_index])?;
                 } else if let Some(old_id) = previously_focused {
                     // Preserve current window (hopefully)
-                    if let Some(new_index) = window_order.iter().position (|&id| id == old_id) {
+                    if let Some(new_index) = window_order.iter().position(|&id| id == old_id) {
                         focused_index = new_index;
                     } else {
                         focused_index = focused_index.min(window_order.len() - 1);
@@ -337,35 +386,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             Event::KeyPress(event) => {
-
-                // SUPER+J cycles forward, SUPER+K cycles backward.
-                let delta = if event.detail == super_j {
-                    1i32
-                } else if event.detail == super_k {
-                    -1
+                if event.detail == super_q {
+                    if let Some(&window_id) = window_order.get(focused_index) {
+                        close_window(
+                            &conn,
+                            window_id,
+                            wm_protocols,
+                            wm_delete_window,
+                        )?;
+                    }
+                } else if event.detail == super_t {
+                    launch_terminal();
                 } else {
-                    0
-                };
+                    // SUPER+J cycles forward, SUPER+K cycles backward.
+                    let delta = if event.detail == super_j {
+                        1i32
+                    } else if event.detail == super_k {
+                        -1
+                    } else {
+                        0
+                    };
 
-                if delta != 0 && !window_order.is_empty() {
+                    if delta != 0 && !window_order.is_empty() {
+                        // rem_euclid keeps this correct in both directions,
+                        // where plain % would panic on the negative side.
+                        focused_index = ((focused_index as i32 + delta)
+                            .rem_euclid(window_order.len() as i32))
+                            as usize;
 
-                    // rem_euclid keeps this correct in both directions,
-                    // where plain % would panic on the negative side.
-                    focused_index = ((focused_index as i32 + delta)
-                        .rem_euclid(window_order.len() as i32)) as usize;
+                        let window_id = window_order[focused_index];
 
-                    let window_id = window_order[focused_index];
+                        // Raise it so the focused window is on top...
+                        conn.configure_window(
+                            window_id,
+                            &ConfigureWindowAux::new().stack_mode(StackMode::ABOVE),
+                        )?;
 
-                    // Raise it so the focused window is on top...
-                    conn.configure_window(
-                        window_id,
-                        &ConfigureWindowAux::new()
-                            .stack_mode(StackMode::ABOVE),
-                    )?;
-
-                    // ...and actually give it the focus.
-                    focus_window(&conn, window_id)?;
-
+                        // ...and actually give it the focus.
+                        focus_window(&conn, window_id)?;
+                    }
                 }
             }
 
