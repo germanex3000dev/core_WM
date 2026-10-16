@@ -2,9 +2,20 @@
 
 A small, minimalistic yet modern and featurefull X11 window manager, written in Rust.
 
-> **Status: very early.** core_WM is at version `0.1.4`. It tiles windows, tracks focus,
-> and answers a couple of hardcoded keybindings — but there is no configuration, no
+> **Status: very early.** core_WM is at version `0.1.5`. It tiles windows, tracks focus,
+> and answers four hardcoded keybindings — but there is no configuration, no
 > decoration, and no floating yet. Expect things to break and the API to change.
+
+> Want to know how it actually works? See [`docs/documentation.md`](docs/documentation.md).
+
+> Small note from me: This project has no code written by AI, I typed everything by hand, but
+> I used AI to explain stuff to me, since I'm very new to Rust
+
+### Small update:
+
+I put this here at top, becuase this is kind of an important feature: core_WM has now a keybind
+to launch a terminal, and a keybind for killing windows (Yeah, it can free you from Microslop
+windows). So basically, it is kind of, barely *usable*(Not really).
 
 ## Goals
 
@@ -12,6 +23,8 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - **Minimalistic.** No bloat, no kitchen-sink feature set for its own sake.
 - **Modern.** Written from scratch in Rust, using [x11rb] for a safe, pure-Rust X11 client.
 - **Featurefull.** The long-term goal is a genuinely usable WM — see [Roadmap](#roadmap).
+
+- Why X11, you might be asking and the answer is simple: It's easier and I'm lazy
 
 ## Current Features
 
@@ -25,22 +38,58 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 - Arranges managed windows into equal-width vertical columns, in the order they were
   opened, so the layout stays the same between runs.
 - Moves keyboard focus with `SetInputFocus`, raising the focused window on top.
-- Binds `SUPER+J` / `SUPER+K` to cycle focus forward and backward, wrapping at both ends.
+- Binds `ALT+J` / `ALT+K` to cycle focus forward and backward, wrapping at both ends.
 - Focuses the first window on startup, and re-points focus when the focused window closes.
+- Closes the focused window on `ALT+Q`, using the ICCCM `WM_DELETE_WINDOW` handshake.
+- Spawns a terminal on `ALT+T`.
+
+## Keybindings
+
+Every binding is `ALT` (`ModMask::M1`) plus a key, and they're hardcoded in the source
+for now — see [Known Limitations](#known-limitations).
+
+> You can change it to `SUPER` if you want, see [`docs/documentation.md`](docs/documentation.md)
+> for more details.
+
+| Key     | Action                        |
+| ------- | ----------------------------- |
+| `ALT+J` | Cycle focus forward           |
+| `ALT+K` | Cycle focus backward          |
+| `ALT+T` | Spawn a terminal (`xterm`)    |
+| `ALT+Q` | Close the focused window      |
+
+Focus wraps in both directions, so `ALT+J` past the last window lands back on the first.
 
 ## Current Progress
 
 > This is the section I'll keep rewriting as things land — the running log of small steps.
 > For the bigger picture, see [Goals](#goals) and [Roadmap](#roadmap).
 
-> Yeah, I started adding dates
+> Yeah, I started adding dates, it was getting out of hand
 
-### Latest(major) 05.10.2026, 18:30: focus cycling with SUPER+J / SUPER+K
+### Latest(major) 16.10.2026, 14:12: closing windows with ALT+Q
+
+Closing a window properly in X11 means *asking* the client to close, not killing it
+outright. `close_window()` does the polite version:
+
+- **Cached atoms.** `WM_PROTOCOLS` and `DELETE_WINDOW` are interned once at startup and
+  held for the life of the process, rather than re-interned on every keypress.
+- **Client message.** The request goes out as a `ClientMessageEvent` carrying the
+  `WM_DELETE_WINDOW` message — the handshake clients are expected to understand.
+- **Focused window only.** `ALT+Q` targets whatever `focused_index` points at, and does
+  nothing when there are no windows open.
+
+### Latest(small) 16.10.2026, 14:12: spawning a terminal with ALT+T
+
+`launch_terminal()` shells out to `xterm` and reaps the child on a background thread, so
+long-running sessions don't pile up as zombie processes.
+
+### Latest(major) 05.10.2026, 18:30: focus cycling with ALT+J / ALT+K
 
 core_WM can now move focus between windows, which makes it more than just something that
 tiles windows on its own.
 
-- **Passive grabs.** `SUPER+J` and `SUPER+K` are registered on the root window with
+- **Passive grabs.** `ALT+J` and `ALT+K` are registered on the root window with
   `grab_key` — that's what routes those combos to the WM instead of the focused client.
 - **Keysym lookup.** `keycode_for_keysym()` walks the keyboard mapping at startup to turn
   `j` and `k` into keycodes, so the bindings follow the user's layout rather than assuming
@@ -90,14 +139,15 @@ Deliberately minimal for a first cut, but worth knowing:
 - **Floating isn't wired up.** The `floating` flag exists but nothing reads it yet.
 - **User-driven changes don't stick.** A window that resizes or moves itself keeps that
   geometry until the next map/destroy triggers a re-layout.
-- **Clicking a window doesn't move focus.** Focus only moves with `SUPER+J` / `SUPER+K`;
+- **Clicking a window doesn't move focus.** Focus only moves with `ALT+J` / `ALT+K`;
   there's no `ButtonPress` or `FocusIn` handling yet.
-  - But somehow, moving your mouse over a window focuses on it. I don't know why, it should
-    not happen, but who cares? It works.
-- **Keybindings are hardcoded.** Two of them, compiled straight into the binary. There's no
-  config file yet — see [Roadmap](#roadmap).
+  - Hovering happens to focus a window too, since focus reverts to `POINTER_ROOT` — so
+    moving the mouse across the screen shifts focus. Unplanned, but it works.
+- **`ALT+Q` only works if the client cooperates.** It sends `WM_DELETE_WINDOW`, so a
+  client that ignores the protocol just stays open. Nothing is force-killed.
+- **Keybindings are hardcoded.** Four of them, compiled straight into the binary — see
+  [Keybindings](#keybindings). No config file yet. (But I mean, dwm is source-edited, too)
 
-> I said I would rework it
 
 ## Requirements
 
@@ -132,8 +182,8 @@ cargo build
 ## Running
 
 core_WM takes no arguments. It replaces your current window manager, so be aware
-that it is *not* usable as a daily driver yet — you cannot move, resize, or close
-windows. The one interaction is `SUPER+J` / `SUPER+K` to cycle focus.
+that it is *not* usable as a daily driver yet — you cannot move or resize windows.
+The current bindings are listed in [Keybindings](#keybindings).
 
 ```sh
 core_wm
@@ -159,7 +209,8 @@ But before you do that:
 
 - Compile the code with either `nix develop` or with `cargo build --release`. The binary lands in `target/release/corewm`
 - Then, you can put `exec /path/to/corewm` into your `corewm-session file` (Don't forget the `#!bin/sh`)
-    - **Remember:** Since core_WM has no keybind to launch a terminal, put `kitty &` before you call `exec`. Or xterm, or what kind of terminal you want to use. 
+    - **Remember:** `ALT+T` launches `xterm` and nothing else, so if your daily driver is
+      kitty or anything else, spawn it in the session file before you call `exec`. 
 - For screen settings:
     - You can declare display settings in your `corewm-session` with `xrandr`
         - **Example:** `xrandr --output eDP-1`
@@ -219,7 +270,7 @@ The direction I want to grow the tiling engine into: an unbounded canvas that pa
 Completely not in order — this is a wish list, not a commitment:
 
 - [ ] A configuration file and a sane set of defaults
-- [ ] Keybindings and mouse bindings — focus cycling is in, see [Current Progress](#current-progress)
+- [ ] Keybindings and mouse bindings — four `ALT` bindings are in, see [Keybindings](#keybindings)
 - [ ] Focus handling and focus stealing rules — focus is tracked and cycled, click-to-focus is not
 - [ ] Window decorations
 - [ ] Tiling and floating layouts — vertical tiling is in, see [Current Progress](#current-progress)
