@@ -1,3 +1,5 @@
+mod layout;
+
 use std::collections::HashMap;
 use std::process::Command;
 
@@ -29,37 +31,7 @@ struct ManagedWindow {
     floating: bool,
 }
 
-// This function arranges the windows and is the "main" tiling logic
-fn arrange_windows(
-    conn: &RustConnection,
-    windows: &HashMap<u32, ManagedWindow>,
-    window_order: &Vec<u32>,
-    screen_width: u32,
-    screen_height: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if windows.len() == 0 {
-        return Ok(());
-    }
 
-    let window_width = screen_width / windows.len() as u32;
-
-    for (index, window_id) in window_order.iter().enumerate() {
-        if let Some(window) = windows.get(window_id) {
-            let x = index as u32 * window_width;
-
-            conn.configure_window(
-                window.id,
-                &ConfigureWindowAux::new()
-                    .x(x as i32)
-                    .y(0)
-                    .width(window_width)
-                    .height(screen_height),
-            )?;
-        }
-    }
-
-    Ok(())
-}
 
 // Hands X11 input focus to a window. Without this, raising a window does
 // nothing at all: focus is a per-window property set by SetInputFocus, and
@@ -287,7 +259,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 windows.insert(window, managed_window);
                 window_order.push(window);
 
-                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
+                // Rebuild the layout tree from the current window order
+                let mut created_at_counter: u64 = 0;
+                let layout_tree = layout::rebuild_layout_tree(
+                    &window_order,
+                    screen_width,
+                    screen_height,
+                    &mut created_at_counter,
+                );
+
+                // Get window positions from the layout tree
+                let screen_rect = layout::Rect {
+                    x: 0,
+                    y: 0,
+                    width: screen_width as u16,
+                    height: screen_height as u16,
+                };
+                let leaves = layout::get_all_leaves_with_rects(&layout_tree, screen_rect);
+
+                // Configure each window to its new position
+                for (window_id, x, y, width, height, _created_at) in leaves {
+                    if let Some(_) = windows.get_mut(&window_id) {
+                        conn.configure_window(
+                            window_id,
+                            &ConfigureWindowAux::new()
+                                .x(x)
+                                .y(y)
+                                .width(width)
+                                .height(height),
+                        )?;
+                    }
+                }
 
                 println!(
                     "Window {}: {}x{} at ({}, {})",
@@ -365,7 +367,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("Window closed: {}", event.window);
 
-                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
+                // Rebuild the layout tree with remaining windows
+                let mut created_at_counter: u64 = 0;
+                let layout_tree = layout::rebuild_layout_tree(
+                    &window_order,
+                    screen_width,
+                    screen_height,
+                    &mut created_at_counter,
+                );
+
+                // Get window positions from the layout tree
+                let screen_rect = layout::Rect {
+                    x: 0,
+                    y: 0,
+                    width: screen_width as u16,
+                    height: screen_height as u16,
+                };
+                let leaves = layout::get_all_leaves_with_rects(&layout_tree, screen_rect);
+
+                // Configure each remaining window to its new position
+                for (window_id, x, y, width, height, _created_at) in leaves {
+                    if let Some(_) = windows.get_mut(&window_id) {
+                        conn.configure_window(
+                            window_id,
+                            &ConfigureWindowAux::new()
+                                .x(x)
+                                .y(y)
+                                .width(width)
+                                .height(height),
+                        )?;
+                    }
+                }
 
                 if window_order.len() == 0 {
                     focused_index = 0;
