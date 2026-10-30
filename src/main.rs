@@ -1,5 +1,3 @@
-mod layout;
-
 use std::collections::HashMap;
 use std::process::Command;
 
@@ -31,7 +29,37 @@ struct ManagedWindow {
     floating: bool,
 }
 
+// This function arranges the windows and is the "main" tiling logic
+fn arrange_windows(
+    conn: &RustConnection,
+    windows: &HashMap<u32, ManagedWindow>,
+    window_order: &Vec<u32>,
+    screen_width: u32,
+    screen_height: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if windows.len() == 0 {
+        return Ok(());
+    }
 
+    let window_width = screen_width / windows.len() as u32;
+
+    for (index, window_id) in window_order.iter().enumerate() {
+        if let Some(window) = windows.get(window_id) {
+            let x = index as u32 * window_width;
+
+            conn.configure_window(
+                window.id,
+                &ConfigureWindowAux::new()
+                    .x(x as i32)
+                    .y(0)
+                    .width(window_width)
+                    .height(screen_height),
+            )?;
+        }
+    }
+
+    Ok(())
+}
 
 // Hands X11 input focus to a window. Without this, raising a window does
 // nothing at all: focus is a per-window property set by SetInputFocus, and
@@ -148,8 +176,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut focused_index: usize = 0;
 
-const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
-
     println!("core_WM: running(hopefully. maybe.)");
 
     let wm_protocols = conn
@@ -178,9 +204,6 @@ const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
 
     let super_q = keycode_for_keysym(&conn, q_keysym)?
         .ok_or("Could not find the q key in the keyboard mapping")?;
-
-    let super_m = keycode_for_keysym(&conn, xkeysym::Keysym::from_char('m'))?
-        .ok_or("Could not find the m key in the keyboard mapping")?;
 
     // A passive grab is what routes a combo to us at all - without one the
     // key event goes to the focused window and never reaches this loop.
@@ -225,16 +248,6 @@ const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
     )?
     .check()?;
 
-    conn.grab_key(
-        false,
-        root,
-        ModMask::M1,
-        super_m,
-        GrabMode::ASYNC,
-        GrabMode::ASYNC,
-    )?
-    .check()?;
-
     // Process X11 events for all eternity(not really)
     loop {
         let event = conn.wait_for_event()?;
@@ -274,27 +287,7 @@ const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
                 windows.insert(window, managed_window);
                 window_order.push(window);
 
-                // Arrange windows using the selected layout mode
-                let new_geometry = layout::arrange_windows(
-                    &window_order,
-                    screen_width,
-                    screen_height,
-                    LAYOUT_MODE,
-                );
-
-                // Configure each window to its new position
-                for (window_id, x, y, width, height) in new_geometry {
-                    if let Some(_) = windows.get_mut(&window_id) {
-                        conn.configure_window(
-                            window_id,
-                            &ConfigureWindowAux::new()
-                                .x(x)
-                                .y(y)
-                                .width(width)
-                                .height(height),
-                        )?;
-                    }
-                }
+                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
 
                 println!(
                     "Window {}: {}x{} at ({}, {})",
@@ -372,27 +365,7 @@ const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
 
                 println!("Window closed: {}", event.window);
 
-                // Arrange windows using the selected layout mode
-                let new_geometry = layout::arrange_windows(
-                    &window_order,
-                    screen_width,
-                    screen_height,
-                    LAYOUT_MODE,
-                );
-
-                // Configure each remaining window to its new position
-                for (window_id, x, y, width, height) in new_geometry {
-                    if let Some(_) = windows.get_mut(&window_id) {
-                        conn.configure_window(
-                            window_id,
-                            &ConfigureWindowAux::new()
-                                .x(x)
-                                .y(y)
-                                .width(width)
-                                .height(height),
-                        )?;
-                    }
-                }
+                arrange_windows(&conn, &windows, &window_order, screen_width, screen_height)?;
 
                 if window_order.len() == 0 {
                     focused_index = 0;
@@ -421,37 +394,6 @@ const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
                             wm_protocols,
                             wm_delete_window,
                         )?;
-                    }
-                } else if event.detail == super_m {
-                    // Change master: move focused window to front of window_order
-                    let focused_window = window_order[focused_index];
-                    if focused_window != window_order[0] {
-                        // Remove focused window from its current position
-                        window_order.remove(focused_index);
-                        // Insert at front (make it master)
-                        window_order.insert(0, focused_window);
-                        // Reset focused_index to 0 (now pointing at the new master)
-                        focused_index = 0;
-                        // Recalculate layout using arrange_windows
-                        let new_geometry = layout::arrange_windows(
-                            &window_order,
-                            screen_width,
-                            screen_height,
-                            LAYOUT_MODE,
-                        );
-                        // Configure each window to its new position
-                        for (window_id, x, y, width, height) in new_geometry {
-                            if let Some(_) = windows.get_mut(&window_id) {
-                                conn.configure_window(
-                                    window_id,
-                                    &ConfigureWindowAux::new()
-                                        .x(x)
-                                        .y(y)
-                                        .width(width)
-                                        .height(height),
-                                )?;
-                            }
-                        }
                     }
                 } else if event.detail == super_t {
                     launch_terminal();

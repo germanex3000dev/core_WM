@@ -13,7 +13,9 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 
 ### Small update:
 
-I also made a proper, master-stack layout, not that weird vertical split thing
+I put this here at top, becuase this is kind of an important feature: core_WM has now a keybind
+to launch a terminal, and a keybind for killing windows (Yeah, it can free you from Microslop
+windows). So basically, it is kind of, barely *usable*(Not really).
 
 ## Goals
 
@@ -33,8 +35,8 @@ I also made a proper, master-stack layout, not that weird vertical split thing
 - Reacts to `ConfigureRequest` by forwarding the requested geometry to the X server and
   keeping the struct in sync.
 - Reacts to `DestroyNotify` by dropping the window and re-running the layout.
-- Uses master-stack layout and a very simple, still work-in-progress, dwindle-like layout
-- You can change the Master window with `ALT+M`
+- Arranges managed windows into equal-width vertical columns, in the order they were
+  opened, so the layout stays the same between runs.
 - Moves keyboard focus with `SetInputFocus`, raising the focused window on top.
 - Binds `ALT+J` / `ALT+K` to cycle focus forward and backward, wrapping at both ends.
 - Focuses the first window on startup, and re-points focus when the focused window closes.
@@ -54,7 +56,7 @@ for now — see [Known Limitations](#known-limitations).
 | `ALT+J` | Cycle focus forward           |
 | `ALT+K` | Cycle focus backward          |
 | `ALT+T` | Spawn a terminal (`xterm`)    |
-| `ALT+M` | Change master window          |
+| `ALT+Q` | Close the focused window      |
 
 Focus wraps in both directions, so `ALT+J` past the last window lands back on the first.
 
@@ -65,21 +67,8 @@ Focus wraps in both directions, so `ALT+J` past the last window lands back on th
 
 > Yeah, I started adding dates, it was getting out of hand
 
-### Latest(small) 29.10.2026, keybindings update
+### Latest(major) 16.10.2026, 14:12: closing windows with ALT+Q
 
-Added **ALT+M** to change the master window in MasterStack mode. Pressing ALT+M on any
-focused non-master window makes it the new master, with layout recalculated immediately.
-
-### Latest(major) 29.10.2026, layout modes
-
-Added **two layout modes** selectable via `LAYOUT_MODE` constant in `src/main.rs`:
-
-- **MasterStack** (default): One master window takes ~80% of screen, remaining windows stack
-  vertically in the sidebar. ALT+M reassigns the master.
-- **Dwindle**: Grid arrangement for up to 4 windows in a 2x2 layout. For 5+ windows, falls
-  back to MasterStack behavior.
-
-Both layouts recalculate immediately on window map/destroy, and ALT+M only works in MasterStack mode.
 Closing a window properly in X11 means *asking* the client to close, not killing it
 outright. `close_window()` does the polite version:
 
@@ -299,15 +288,3 @@ a little — see the [issue tracker](https://github.com/germanex3000dev/core_WM/
 Released under the [MIT License](LICENSE). Copyright (c) 2026 Germanex3000.
 
 [x11rb]: https://github.com/baskerville/x11rb
-
-## Layout Modes
-
-The WM supports two layout modes, selectable by changing `LAYOUT_MODE` in `src/main.rs`:
-
-- **MasterStack** (default, `LAYOUT_MODE = 0`): One master window takes ~80% of screen width, remaining windows stack vertically in the sidebar. Press **ALT+M** on any window to make it the new master.
-
-- **Dwindle** (`LAYOUT_MODE = 1`): Grid arrangement for up to 4 windows (2x2 at most). For 5+ windows, falls back to MasterStack behavior.
-
-**ALT+M** changes the master window in MasterStack mode. The layout is recalculated immediately.
-
-See [README](README.md) for build instructions and keybindings.

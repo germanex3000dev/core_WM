@@ -987,25 +987,3 @@ looking for it, and until it's there they'll politely ignore core_WM.
 ---
 
 *Documented against core_WM 0.1.5 (`src/main.rs`, 437 lines).*
-
-
-## 17. Layout Modes
-
-The WM supports two layout modes, controlled by the `LAYOUT_MODE` constant in `src/main.rs`:
-
-- **MasterStack** (`LAYOUT_MODE = 0`, default): One master window takes ~80% of screen width, remaining windows stack vertically in the sidebar. Press **ALT+M** on any window to make it the new master window. The layout is recalculated immediately.
-
-- **Dwindle** (`LAYOUT_MODE = 1`): Grid arrangement for up to 4 windows (2x2 at most). For 5+ windows, falls back to MasterStack arrangement.
-
-### Changing the master window (MasterStack only)
-
-Press **ALT+M** while a window is focused. If the focused window is not already the master (first in `window_order`), it is moved to the front of the order and the layout is recalculated. Focus remains on the same window — it is now the master.
-
-This is handled in `Event::KeyPress` at `src/main.rs:425-442`. The key `super_m` (ALT+M) is registered as a passive grab alongside the other bindings.
-
-## 16. Glossary
-
-| Term | Meaning |
-| --- | --- |
-| **Master window** | The window that takes the majority of screen real estate in MasterStack mode. |
-| **Dwindle** | A layout mode arranging windows in a grid, falling back to MasterStack for 5+ windows. |
