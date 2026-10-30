@@ -13,9 +13,7 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 
 ### Small update:
 
-I put this here at top, becuase this is kind of an important feature: core_WM has now a keybind
-to launch a terminal, and a keybind for killing windows (Yeah, it can free you from Microslop
-windows). So basically, it is kind of, barely *usable*(Not really).
+I also made a proper, master-stack layout, not that weird vertical split thing
 
 ## Goals
 
@@ -35,8 +33,8 @@ windows). So basically, it is kind of, barely *usable*(Not really).
 - Reacts to `ConfigureRequest` by forwarding the requested geometry to the X server and
   keeping the struct in sync.
 - Reacts to `DestroyNotify` by dropping the window and re-running the layout.
-- Arranges managed windows into equal-width vertical columns, in the order they were
-  opened, so the layout stays the same between runs.
+- Uses master-stack layout and a very simple, still work-in-progress, dwindle-like layout
+- You can change the Master window with `ALT+M`
 - Moves keyboard focus with `SetInputFocus`, raising the focused window on top.
 - Binds `ALT+J` / `ALT+K` to cycle focus forward and backward, wrapping at both ends.
 - Focuses the first window on startup, and re-points focus when the focused window closes.
