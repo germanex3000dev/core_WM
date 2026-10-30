@@ -148,6 +148,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut focused_index: usize = 0;
 
+const LAYOUT_MODE: u32 = 0; // 0 = MasterStack, 1 = Dwindle
+
     println!("core_WM: running(hopefully. maybe.)");
 
     let wm_protocols = conn
@@ -176,6 +178,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let super_q = keycode_for_keysym(&conn, q_keysym)?
         .ok_or("Could not find the q key in the keyboard mapping")?;
+
+    let super_m = keycode_for_keysym(&conn, xkeysym::Keysym::from_char('m'))?
+        .ok_or("Could not find the m key in the keyboard mapping")?;
 
     // A passive grab is what routes a combo to us at all - without one the
     // key event goes to the focused window and never reaches this loop.
@@ -220,6 +225,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?
     .check()?;
 
+    conn.grab_key(
+        false,
+        root,
+        ModMask::M1,
+        super_m,
+        GrabMode::ASYNC,
+        GrabMode::ASYNC,
+    )?
+    .check()?;
+
     // Process X11 events for all eternity(not really)
     loop {
         let event = conn.wait_for_event()?;
@@ -259,26 +274,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 windows.insert(window, managed_window);
                 window_order.push(window);
 
-                // Rebuild the layout tree from the current window order
-                let mut created_at_counter: u64 = 0;
-                let layout_tree = layout::rebuild_layout_tree(
+                // Arrange windows using the selected layout mode
+                let new_geometry = layout::arrange_windows(
                     &window_order,
                     screen_width,
                     screen_height,
-                    &mut created_at_counter,
+                    LAYOUT_MODE,
                 );
 
-                // Get window positions from the layout tree
-                let screen_rect = layout::Rect {
-                    x: 0,
-                    y: 0,
-                    width: screen_width as u16,
-                    height: screen_height as u16,
-                };
-                let leaves = layout::get_all_leaves_with_rects(&layout_tree, screen_rect);
-
                 // Configure each window to its new position
-                for (window_id, x, y, width, height, _created_at) in leaves {
+                for (window_id, x, y, width, height) in new_geometry {
                     if let Some(_) = windows.get_mut(&window_id) {
                         conn.configure_window(
                             window_id,
@@ -367,26 +372,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("Window closed: {}", event.window);
 
-                // Rebuild the layout tree with remaining windows
-                let mut created_at_counter: u64 = 0;
-                let layout_tree = layout::rebuild_layout_tree(
+                // Arrange windows using the selected layout mode
+                let new_geometry = layout::arrange_windows(
                     &window_order,
                     screen_width,
                     screen_height,
-                    &mut created_at_counter,
+                    LAYOUT_MODE,
                 );
 
-                // Get window positions from the layout tree
-                let screen_rect = layout::Rect {
-                    x: 0,
-                    y: 0,
-                    width: screen_width as u16,
-                    height: screen_height as u16,
-                };
-                let leaves = layout::get_all_leaves_with_rects(&layout_tree, screen_rect);
-
                 // Configure each remaining window to its new position
-                for (window_id, x, y, width, height, _created_at) in leaves {
+                for (window_id, x, y, width, height) in new_geometry {
                     if let Some(_) = windows.get_mut(&window_id) {
                         conn.configure_window(
                             window_id,
@@ -426,6 +421,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             wm_protocols,
                             wm_delete_window,
                         )?;
+                    }
+                } else if event.detail == super_m {
+                    // Change master: move focused window to front of window_order
+                    let focused_window = window_order[focused_index];
+                    if focused_window != window_order[0] {
+                        // Remove focused window from its current position
+                        window_order.remove(focused_index);
+                        // Insert at front (make it master)
+                        window_order.insert(0, focused_window);
+                        // Reset focused_index to 0 (now pointing at the new master)
+                        focused_index = 0;
+                        // Recalculate layout using arrange_windows
+                        let new_geometry = layout::arrange_windows(
+                            &window_order,
+                            screen_width,
+                            screen_height,
+                            LAYOUT_MODE,
+                        );
+                        // Configure each window to its new position
+                        for (window_id, x, y, width, height) in new_geometry {
+                            if let Some(_) = windows.get_mut(&window_id) {
+                                conn.configure_window(
+                                    window_id,
+                                    &ConfigureWindowAux::new()
+                                        .x(x)
+                                        .y(y)
+                                        .width(width)
+                                        .height(height),
+                                )?;
+                            }
+                        }
                     }
                 } else if event.detail == super_t {
                     launch_terminal();
