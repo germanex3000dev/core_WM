@@ -56,7 +56,7 @@ for now — see [Known Limitations](#known-limitations).
 | `ALT+J` | Cycle focus forward           |
 | `ALT+K` | Cycle focus backward          |
 | `ALT+T` | Spawn a terminal (`xterm`)    |
-| `ALT+Q` | Close the focused window      |
+| `ALT+M` | Change master window          |
 
 Focus wraps in both directions, so `ALT+J` past the last window lands back on the first.
 
@@ -67,8 +67,21 @@ Focus wraps in both directions, so `ALT+J` past the last window lands back on th
 
 > Yeah, I started adding dates, it was getting out of hand
 
-### Latest(major) 16.10.2026, 14:12: closing windows with ALT+Q
+### Latest(small) 29.10.2026, keybindings update
 
+Added **ALT+M** to change the master window in MasterStack mode. Pressing ALT+M on any
+focused non-master window makes it the new master, with layout recalculated immediately.
+
+### Latest(major) 29.10.2026, layout modes
+
+Added **two layout modes** selectable via `LAYOUT_MODE` constant in `src/main.rs`:
+
+- **MasterStack** (default): One master window takes ~80% of screen, remaining windows stack
+  vertically in the sidebar. ALT+M reassigns the master.
+- **Dwindle**: Grid arrangement for up to 4 windows in a 2x2 layout. For 5+ windows, falls
+  back to MasterStack behavior.
+
+Both layouts recalculate immediately on window map/destroy, and ALT+M only works in MasterStack mode.
 Closing a window properly in X11 means *asking* the client to close, not killing it
 outright. `close_window()` does the polite version:
 
@@ -288,3 +301,15 @@ a little — see the [issue tracker](https://github.com/germanex3000dev/core_WM/
 Released under the [MIT License](LICENSE). Copyright (c) 2026 Germanex3000.
 
 [x11rb]: https://github.com/baskerville/x11rb
+
+## Layout Modes
+
+The WM supports two layout modes, selectable by changing `LAYOUT_MODE` in `src/main.rs`:
+
+- **MasterStack** (default, `LAYOUT_MODE = 0`): One master window takes ~80% of screen width, remaining windows stack vertically in the sidebar. Press **ALT+M** on any window to make it the new master.
+
+- **Dwindle** (`LAYOUT_MODE = 1`): Grid arrangement for up to 4 windows (2x2 at most). For 5+ windows, falls back to MasterStack behavior.
+
+**ALT+M** changes the master window in MasterStack mode. The layout is recalculated immediately.
+
+See [README](README.md) for build instructions and keybindings.
