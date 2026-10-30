@@ -11,11 +11,10 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 > Small note from me: This project has no code written by AI, I typed everything by hand, but
 > I used AI to explain stuff to me, since I'm very new to Rust
 
-### Small update:
+### Major design decision from me
 
-I put this here at top, becuase this is kind of an important feature: core_WM has now a keybind
-to launch a terminal, and a keybind for killing windows (Yeah, it can free you from Microslop
-windows). So basically, it is kind of, barely *usable*(Not really).
+I ditched the master-stack and that cracked dwindle-like layout. it was just a pain and 
+I didn't really like it. I want this hole project to be simple and the way I want.
 
 ## Goals
 
