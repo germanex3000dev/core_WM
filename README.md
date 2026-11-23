@@ -20,7 +20,7 @@ I didn't really like it. I want this whole project to be simple and the way I wa
 
 - **Small.** A tight, readable codebase you can actually hold in your head.
 - **Minimalistic.** No bloat, no kitchen-sink feature set for its own sake.
-- **Modern.** Written from scratch in Rust, using [x11rb] for a safe, pure-Rust X11 client.
+- **Modern.** Written from scratch in Rust, using [x11rb](https://github.com/psychon/x11rb) for a safe, pure-Rust X11 client.
 - **Featurefull.** The long-term goal is a genuinely usable WM — see [Roadmap](#roadmap).
 
 - Why X11, you might be asking and the answer is simple: It's easier and I'm lazy
