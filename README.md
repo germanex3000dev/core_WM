@@ -14,7 +14,7 @@ A small, minimalistic yet modern and featurefull X11 window manager, written in 
 ### Major design decision from me
 
 I ditched the master-stack and that cracked dwindle-like layout. it was just a pain and 
-I didn't really like it. I want this hole project to be simple and the way I want.
+I didn't really like it. I want this whole project to be simple and the way I want.
 
 ## Goals
 
