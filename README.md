@@ -2,6 +2,8 @@
 
 A small, minimalistic yet modern and featurefull X11 window manager, written in Rust.
 
+**Big design changes:** I decided to try and make core_WM wayland based. BUT, I will not make it fully from scratch, I have a life. I`m probably going to use dwl or river as a base and continue from there
+
 > **Status: very early.** core_WM is at version `0.1.5`. It tiles windows, tracks focus,
 > and answers four hardcoded keybindings — but there is no configuration, no
 > decoration, and no floating yet. Expect things to break and the API to change.
